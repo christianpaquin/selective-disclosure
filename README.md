@@ -2,15 +2,11 @@
 
 **NOTE**: this project is a work in progress
 
-The [JSON Web Tokens](https://datatracker.ietf.org/doc/html/rfc7519) (JWT) offer a popular format to present claims (attributes) online; for example, the OpenID Connect protocol encodes its ID Tokens as JWTs. A trusted issuer can sign a JWT, creating a [JSON Web Signature](https://datatracker.ietf.org/doc/html/rfc7515) (JWS), allowing anyone with the issuer's public key to verify the authenticity and integrity of the claims. By design, no one can modify the JWS without invalidating its signature. One consequence is that all the encoded claims must presented to a relying party, even if only a subset would satisfy its access policy.
+The [JSON Web Tokens](https://datatracker.ietf.org/doc/html/rfc7519) (JWT) offer a popular format to present claims (attributes) online (e.g., in OAuth and OpenID Connect). A trusted issuer can sign a JWT, creating a [JSON Web Signature](https://datatracker.ietf.org/doc/html/rfc7515) (JWS), allowing anyone with the issuer's public key to verify the authenticity and integrity of the claims. By design, no one can modify the JWS without invalidating its signature. One consequence is that all the encoded claims must presented to a relying party, even if only a subset would satisfy its access policy.
 
-In settings where users hold reusable long-lived tokens, it would be desirable to allow them to selectively disclose a subset of the claims encoded in a JWS, to meet a relying party's minimum access policy requirements. This _minimal disclosure_ aspect has long been explored in privacy-protecting identity systems, such as [U-Prove](https://www.microsoft.com/uprove) and [Idemix](https://github.com/IBM/idemix), and supported in more recent frameworks such as [Verifiable Credentials](https://www.w3.org/TR/vc-data-model/) and [JSON Web Proofs](https://github.com/json-web-proofs/json-web-proofs). Although these systems support rich cryptographic mechanisms for advanced claim disclosures (e.g., issuance-presentation unlinkability, derived claims (aka predicate proofs)), simple easy-to-implement methods could be used to provide straightforward subset claim disclosure, allowing users to hide on-demand some of encoded claims. As an example, a hashed-based approach has been adopted by the [ISO mobile Driver License](https://www.iso.org/standard/69084.html) (mDL) standard.
+In settings where users hold reusable long-lived tokens, it would be desirable to allow them to selectively disclose a subset of the claims encoded in a JWS, to meet a relying party's minimum access policy requirements. This _minimal disclosure_ aspect has long been explored in privacy-protecting identity systems, such as [U-Prove](https://www.microsoft.com/uprove) and [Idemix](https://github.com/IBM/idemix), and supported in more recent frameworks such as [Verifiable Credentials](https://www.w3.org/TR/vc-data-model/) and [JSON Web Proofs](https://github.com/json-web-proofs/json-web-proofs). Although these systems support rich cryptographic mechanisms for advanced claim disclosures (e.g., issuance/presentation unlinkability and derived claims (aka predicate proofs)), simple easy-to-implement methods could be used to provide straightforward subset claim disclosure, allowing users to hide some of the encoded claims on-demand. As an example, a hashed-based approach has been adopted by the [ISO mobile Driver License](https://www.iso.org/standard/69084.html) (mDL) standard.
 
 This project explores methods to provide selective claim disclosure for and within generic JWTs using conventional cryptographic techniques. This is done be specifying a new claim type encoding selectively-disclosable claims; users (holders) and verifiers (relying parties) supporting the feature can hide and verify said claims.
-
-## Setup
-
-To run the code examples, make sure [node.js](https://nodejs.org/) and [npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) are installed on your system; the latest Long-Term Support (LTS) version is recommended for both. From the command-line, run `npm install`.
 
 ## Hash-based selective disclosure
 
@@ -18,15 +14,15 @@ This section specifies a simple hash-based selective disclosure mechanism for JW
 
 ### Overview
 
-In addition to normal, always-disclosed claims, a set of selectively-disclosable claims can be encoded by the issuer into a `sdDigests` object in the JWT, containing the salted hash digests of the claims values. The corresponding pre-image data (the salts and claim values) are encoded in a `sdData` object in the JWS unprotected header. A verifier can validate the claim digests using the claim data; a user can hide some of these claims by deleting the corresponding `sdData` values, without affecting the JWS integrity. Since the hash digest of the (disclosed and hidden) claims are always visible to the relying parties, a strong digest derivation function can be used to prevent offline brute force attacks. 
+In addition to normal, always-disclosed claims, a set of selectively-disclosable claims can be encoded by the issuer into a `sdDigests` object in the JWT, containing the salted hash digests of the claims values. The corresponding pre-image data (the salts and claim values) are encoded in a `sdData` object in the JWS unprotected header. A verifier can validate the claim digests using the claim data; a user can hide some of these claims by deleting the corresponding `sdData` values, without affecting the JWS integrity. Since the hash digest of the (disclosed and hidden) claims are always visible to the verifier, a strong digest derivation function can be used to prevent offline brute-force attacks to recover the hidden claims. 
 
 ### Digest derivation function
 
-Various salted digest derivation functions (DDF) offer different levels of brute-force resistance. The supported functions must take a salt (byte array) and a claim value (UTF8 encoding of string value) and return a digest (byte array). Two DDF choices are currently available (TODO: specify/test more, e.g., hmac (as proposed in this [JWP PR](https://github.com/json-web-proofs/json-web-proofs/pull/48)), bcrypt, argon2):
+Various salted digest derivation functions (DDF) offer different levels of brute-force resistance. The supported functions must take a salt (byte array) and a claim value (UTF8 encoding of string value (TODO: support other claim types)) and return a digest (byte array). Two DDF choices are currently available (TODO: specify/test more, e.g., hmac (as proposed in this [JWP PR](https://github.com/json-web-proofs/json-web-proofs/pull/48)), bcrypt, argon2):
 
 #### PBKDF2-HMAC-SHA256-310000
 
-This function uses the [PBKDF2](https://datatracker.ietf.org/doc/html/rfc2898) key derivation function on the salt and claim value, instantiated with HMAC-SHA256 with a 310,000 iteration count, returning a 32 byte digest, as recommended by [OWASP password storage cheat sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#pbkdf2).
+This function uses the [PBKDF2](https://datatracker.ietf.org/doc/html/rfc2898) key derivation function on the salt and claim value, instantiated with HMAC-SHA256 with a 310,000 iteration count, returning a 32 byte digest, as recommended by the [OWASP password storage cheat sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#pbkdf2).
 
 #### SHA256
 
@@ -54,7 +50,11 @@ The relying party validates the JWS as it typically does. If the `sdData` object
 
 ### Example
 
-This example was generated by running `npm run sdHash`.
+This example was generated by running the `./hashSdJwt.js` script. To run the script:
+* Make sure [node.js](https://nodejs.org/) and [npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) are installed on your system (the latest Long-Term Support (LTS) version is recommended for both).
+* Install the project: `npm install`
+* Run the script: `node hashSdJwt.js`
+
 
 JWT to sign: 
 
@@ -163,6 +163,30 @@ JWS:
   "protected": "eyJhbGciOiJFUzI1NiIsInNkRERGIjoiUEJLREYyLUhNQUMtU0hBMjU2LTMxMDAwMCJ9"
 }
 ```
+
+To hide the "middle_name" and "family_name" claims, the user removes the corresponding properties from the unprotected header's `sdData` object:
+
+```json
+{
+  "signature": "2TMsBQ3EepeOmqy5-JwNGrrdbsps_GOieyDLo6HDzQNIjrmyI1HUeq-wfwSNDwXH4WvVhKlRlEEEzTMqqygicA",
+  "payload": "eyJpc3MiOiJodHRwczovL2V4YW1wbGUub3JnIiwibmJmIjoxNjQ4MjI2NjAzLjc2LCJhYmMiOjEsImZvbyI6ImJhciIsIm92ZXIyMSI6dHJ1ZSwic2REaWdlc3RzIjp7ImdpdmVuX25hbWUiOiI3blowX0dTWURHd00tQ1gyeUdsOUVSWlNaSW5ORW9mVjZnOUJrZkJPcWE0IiwibWlkZGxlX25hbWUiOiJiMWRnVVE0V0ljbWtXV05VX0ZCcDNWQWJXaE9iQmlwZkc1WW1aenNXTS1VIiwiZmFtaWx5X25hbWUiOiIxOEp6ejR2QUw2QnhWZ1doeHdpLW8wVzk5MF9pYXpvUjViTGozQzFhcmNzIiwiaHR0cHM6Ly9leGFtcGxlLm9yZy9jdXN0b20iOiJBOFdrVFBzUmR4emw3N01IZ0EtNFdvTFJDTnZVcEU3bHFxVUlVRTczT3o4In19",
+  "header": {
+    "sdData": {
+      "given_name": {
+        "s": "GngdjaPuE_I",
+        "v": "Jason"
+      },
+      "https://example.org/custom": {
+        "s": "erZd7K12pOg",
+        "v": "custom value"
+      }
+    }
+  },
+  "protected": "eyJhbGciOiJFUzI1NiIsInNkRERGIjoiUEJLREYyLUhNQUMtU0hBMjU2LTMxMDAwMCJ9"
+}
+```
+
+
 
 ### Notes
 
