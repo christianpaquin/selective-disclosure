@@ -1,0 +1,14 @@
+{
+  "name": "selective-disclosure",
+  "version": "1.0.0",
+  "description": "Prototyping selective disclosure for JWT",
+  "scripts": {
+    "sdHash": "node hashSdJwt.js"
+  },
+  "author": "Christian Paquin",
+  "license": "MIT",
+  "dependencies": {
+    "jose": "^4.6.2",
+    "pbkdf2": "^3.1.2"
+  }
+}
