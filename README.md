@@ -1,6 +1,6 @@
 # Simple selective disclosure for JSON Web Tokens 
 
-**NOTE**: this project is a work in progress
+**NOTE**: this project prototyped a hash-based selective disclosure mechanism for JSON Web Tokens (JWT), and is now deprecated. Please refer to the [proposal](https://github.com/oauthstuff/draft-selective-disclosure-jwt/) in the OAuth working group to specify this functionality; the [sd-jwt project](https://github.com/christianpaquin/sd-jwt/) provides a reference implementation.
 
 The [JSON Web Tokens](https://datatracker.ietf.org/doc/html/rfc7519) (JWT) offer a popular format to present claims (attributes) online (e.g., in OAuth and OpenID Connect). A trusted issuer can sign a JWT, creating a [JSON Web Signature](https://datatracker.ietf.org/doc/html/rfc7515) (JWS), allowing anyone with the issuer's public key to verify the authenticity and integrity of the claims. By design, no one can modify the JWS without invalidating its signature. One consequence is that all the encoded claims must presented to a relying party, even if only a subset would satisfy its access policy.
 
